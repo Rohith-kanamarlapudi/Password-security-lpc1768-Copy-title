@@ -21,5 +21,5 @@ CLEAR_KEY = "*"             # clears the digits entered so far
 # ---- Presentation only (used by the terminal interface, not by the logic) ----
 PROJECT_TITLE = "PASSWORD-BASED SECURITY SYSTEM"
 PROJECT_SUBTITLE = "NXP LPC1768 | ALS-SDA-ARMCTXM3-01 Trainer Board"
-TEAM = ("Soham Chopra", "Rohith Kanamarlapudi", "Pallikila Namrath")
+TEAM = ("Soham Chopra", "Rohith Kanamarlapudi", "Pallikila Namrath", "Vighnesh Reddy")
 HISTORY_SHOWN = 10          # rows shown on the history screen
