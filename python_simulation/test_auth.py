@@ -98,6 +98,35 @@ class AuthTests(unittest.TestCase):
     def test_invalid_password_config_rejected(self):
         with self.assertRaises(ValueError):
             AuthSystem(password="12")
+        with self.assertRaises(ValueError):
+            AuthSystem(password="12²³")   # superscript digits are not 0-9
+
+    def test_invalid_limits_rejected(self):
+        with self.assertRaises(ValueError):
+            AuthSystem(max_attempts=0)
+        with self.assertRaises(ValueError):
+            AuthSystem(lockout_seconds=0)
+
+    def test_non_ascii_digits_are_ignored_not_a_crash(self):
+        # str.isdigit() accepts these, and comparing them used to raise TypeError
+        for k in "²٣":
+            self.assertIs(self.sys.press(k), Event.NONE)
+        self.assertEqual(self.sys.buffer, "")
+        self.assertEqual(self.sys.failed_attempts, 0)
+
+    def test_empty_key_ignored(self):
+        self.assertIs(self.sys.press(""), Event.NONE)
+
+    def test_clear_entry_and_reset(self):
+        type_keys(self.sys, "12")
+        self.sys.clear_entry()
+        self.assertEqual(self.sys.buffer, "")
+        for _ in range(3):
+            type_keys(self.sys, "0000")
+        self.assertTrue(self.sys.locked)
+        self.sys.reset()
+        self.assertFalse(self.sys.locked)
+        self.assertEqual(self.sys.failed_attempts, 0)
 
 
 if __name__ == "__main__":

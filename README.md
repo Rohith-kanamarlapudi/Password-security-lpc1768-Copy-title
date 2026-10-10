@@ -9,42 +9,57 @@ The project has two independent parts:
 | `python_simulation/` | Laptop demo of the full behaviour | No |
 | `firmware/` | Embedded C for the LPC1768 (Keil uVision) | Yes |
 
-## Behaviour (same in both)
+## Behaviour
 
 - Enter a 4-digit password on the keypad. Default password: `1234`.
-- Correct: LCD shows **Access Granted**, green LED on, one beep, attempt counter resets.
-- Wrong: LCD shows **Access Denied** and the attempt number, red LED on, buzzer on.
-- After **3 consecutive** wrong attempts: **System Locked** for **30 seconds** with a live countdown. Keys are ignored during lockout.
-- After the lockout the system returns to "Enter Password".
+- Correct: LCD shows **Access Granted**, green LED on, buzzer stays off, attempt counter resets.
+- Wrong: LCD shows **Access Denied** and the attempt number, red LED on, **buzzer on**. The buzzer sounds only after a failed attempt.
+- After **3 consecutive** wrong attempts: **System Locked** for **30 seconds** with a live countdown. Keys are ignored during lockout. The 30 s start after the "Access Denied" message, as in the firmware.
+- After the lockout the system returns to "Enter Password" with the attempt counter reset.
 - `*` clears the digits typed so far. `A-D` and `#` are unused.
+
+**Simulation vs firmware, one difference:** the firmware (and the synopsis flowchart) gives a single short beep on Access Granted. The simulation follows the stricter rule above (buzzer only on failure). To make the firmware match, delete the `buzzer_beep(150);` line in `do_access_granted()` in `firmware/main.c`.
 
 ---
 
 ## 1. Python simulation (run this first)
 
-Requires only Python 3.8+ (no packages to install).
+Requires only Python 3.8+ and the standard library (no packages to install). Works on Windows, macOS and Linux.
 
 ```bash
 cd python_simulation
-python main.py              # interactive, 30 s lockout
-python main.py --fast       # 5 s lockout, short pauses
-python main.py --demo --lockout 3   # scripted walkthrough of every feature
-python -m unittest -v       # 12 unit tests (no waiting, fake clock)
+python main.py                      # menu-driven demo, 30 s lockout
+python main.py --fast               # 5 s lockout and quicker animations
+python main.py --demo               # automatic walkthrough of every feature, then exit
+python main.py --demo --fast        # same, with a 5 s lockout
+python main.py --plain              # no colours or box characters (very old terminals)
+python -m unittest -v               # 32 tests (no waiting, fake clock)
 ```
 
-In VS Code: open the `password-security-lpc1768` folder, open a terminal, `cd python_simulation`, run the commands above.
+On Windows you can also double-click `run_demo.bat` in the project root (needs Python on PATH).
 
-At the `Keypad>` prompt type digits and press Enter, e.g. `1234` or `1111`. You can type one key or all four at once. Type `q` to quit.
+In VS Code: open the `password-security-lpc1768` folder, open a terminal (Ctrl+`), `cd python_simulation`, run a command above. **Maximise the terminal panel** (the up-arrow button in its toolbar) so the whole screen is visible. On Windows use `python` or `py`.
+
+### Using the demo
+
+Menu: `1` enter password, `2` authentication history, `3` system information, `4` automatic demo, `0` exit.
+
+At the password prompt type the 4 digits and press Enter. **What you type is hidden**; the virtual LCD shows `****`. `*` clears the entry, and pressing Enter on its own returns to the menu. An unfinished entry (fewer than 4 digits) is discarded and not counted as an attempt.
 
 Options: `--password 4821`, `--attempts 3`, `--lockout 30`.
 
-Files:
+Everything on screen (LCD, green/red LED, buzzer) is **drawn as text; nothing is connected to real hardware**, and the interface says so.
+
+### Files
 
 - `auth_core.py` - the logic (password check, attempt count, lockout). No printing or sleeping; clock is injectable for tests.
-- `virtual_board.py` - draws the LCD, LEDs and buzzer in the terminal.
-- `main.py` - interactive CLI and scripted demo.
-- `config.py` - password, attempts, lockout time.
-- `test_auth.py` - unit tests.
+- `virtual_board.py` - the simulated LCD, LEDs and buzzer. Its `signal_*()` methods are the single place that decides LED and buzzer states.
+- `history.py` - session log of attempts (the digits typed are never stored).
+- `screens.py` - builds each screen (menu, entry, granted/denied, lockout, history, info).
+- `ui.py` - colours, boxes and screen-drawing helpers.
+- `main.py` - program flow: start-up, menu, authentication, lockout, demo.
+- `config.py` - password, attempts, lockout time, team names.
+- `test_auth.py`, `test_board.py`, `test_interface.py` - tests.
 
 ---
 
@@ -90,4 +105,4 @@ Board connections: keypad CNB to CNB3 (10-pin FRC, short JP4 1-2); LCD CND to CN
 
 ### Verification status
 
-Checked here: the Python tests and demo run, `auth.c` compiles and passes a native test of the lockout logic, and all firmware files pass a syntax check against a stub header. **Not tested on real hardware** - pin wiring and timing still need a check on the board.
+Checked here: the 32 Python tests pass; the interface was run in a real pseudo-terminal (hidden password entry, colours, a real 30 s lockout measured at 30.1 s); `auth.c` compiles and passes a native test of the lockout logic; all firmware files pass a syntax check against a stub header. **Not tested on Windows, and not tested on real hardware** - pin wiring and timing still need a check on the board.
